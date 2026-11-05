@@ -1,6 +1,7 @@
 """
 Detection API Routes
 """
+import backend.app.patch_torch  # noqa: F401
 import base64
 from pathlib import Path
 from typing import Optional

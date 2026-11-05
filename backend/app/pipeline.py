@@ -1,6 +1,7 @@
 """
 End-to-End ALPR Master Pipeline for Backend
 """
+import backend.app.patch_torch  # noqa: F401
 import time
 import uuid
 import base64

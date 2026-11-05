@@ -1,35 +1,7 @@
 """
 Sakshi ALPR India - FastAPI Main Server
 """
-try:
-    import torch.utils.serialization
-except Exception:
-    pass
-
-import torch
-import ultralytics.nn.tasks as tasks
-
-# Global PyTorch 2.6+ / Ultralytics patch to prevent weights_only unpickling failures
-_orig_torch_load = torch.load
-def _patched_torch_load(*args, **kwargs):
-    if "weights_only" not in kwargs:
-        kwargs["weights_only"] = False
-    return _orig_torch_load(*args, **kwargs)
-torch.load = _patched_torch_load
-
-def _safe_load_wrapper(weight, safe_only=None):
-    ckpt = torch.load(weight, map_location="cpu", weights_only=False)
-    if not isinstance(ckpt, dict):
-        ckpt = {"model": ckpt.model}
-    return ckpt, str(weight)
-
-tasks.torch_safe_load = _safe_load_wrapper
-
-try:
-    import ultralytics.engine.model as model_engine
-    model_engine.torch_safe_load = _safe_load_wrapper
-except Exception:
-    pass
+import backend.app.patch_torch  # noqa: F401
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
