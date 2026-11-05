@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sakshi ALPR India • Vehicle Intelligence</title>
+  
+  <!-- Premium Google Fonts: Plus Jakarta Sans, Outfit, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@600;700;800&family=Outfit:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- FontAwesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', '-apple-system', 'sans-serif'],
+            display: ['"Outfit"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #f8fafc;
+      color: #0f172a;
+      min-height: 100vh;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+
+    .card-clean {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    }
+    .card-clean:hover {
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    /* Clean Authentic Indian HSRP Plate Design */
+    .hsrp-plate {
+      background: #ffffff;
+      border: 3px solid #0f172a;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+      display: inline-flex;
+      align-items: stretch;
+      overflow: hidden;
+      min-width: 300px;
+      max-width: 380px;
+      position: relative;
+    }
+    .hsrp-strip {
+      background: #003893;
+      color: #ffffff;
+      padding: 6px 10px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-width: 44px;
+      border-right: 2px solid #0f172a;
+    }
+    .hsrp-chakra {
+      width: 14px;
+      height: 14px;
+      border: 1.5px solid #ffffff;
+      border-radius: 50%;
+      position: relative;
+    }
+    .hsrp-chakra::after {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 4px;
+      height: 4px;
+      background: #ffffff;
+      border-radius: 50%;
+    }
+    .hsrp-text {
+      flex: 1;
+      padding: 8px 16px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 22px;
+      font-weight: 800;
+      color: #0f172a;
+      letter-spacing: 0.16em;
+      text-align: center;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-transform: uppercase;
+    }
+
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: #f1f5f9; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+  </style>
+</head>
+
+<body class="font-sans antialiased bg-slate-50 text-slate-900 selection:bg-blue-600 selection:text-white">
+
+  <!-- ================= TOP HEADER (CLEAN & MINIMAL, NO TECH CLUTTER) ================= -->
+  <header class="bg-white border-b border-slate-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-18 py-4 flex items-center justify-between">
+      
+      <!-- Minimalist Brand Logo & Title -->
+      <div class="flex items-center space-x-3.5">
+        <div class="w-10 h-10 rounded-xl bg-slate-900 text-white flex items-center justify-center shadow-sm">
+          <i class="fa-solid fa-car-side text-base"></i>
+        </div>
+        <div>
+          <h1 class="text-lg font-display font-bold text-slate-900 tracking-tight">
+            Sakshi <span class="text-blue-600">ALPR India</span>
+          </h1>
+          <p class="text-xs text-slate-500 font-normal">Automated License Plate Recognition & Vehicle Identification</p>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ================= MAIN CONTAINER ================= -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-6">
+
+    <!-- KPI STAT METRICS -->
+    <section class="grid grid-cols-2 md:grid-cols-4 gap-4" id="statsRow">
+      <div class="card-clean p-5">
+        <div class="flex items-center justify-between text-slate-500 text-xs font-medium mb-1">
+          <span>Total Vehicles Logged</span>
+          <i class="fa-solid fa-list-check text-slate-400"></i>
+        </div>
+        <div class="text-2xl font-display font-bold text-slate-900" id="statTotalScans">0</div>
+        <div class="text-[11px] text-emerald-600 font-medium mt-1 flex items-center">
+          <i class="fa-solid fa-check mr-1 text-[10px]"></i> Saved in Database
+        </div>
+      </div>
+
+      <div class="card-clean p-5">
+        <div class="flex items-center justify-between text-slate-500 text-xs font-medium mb-1">
+          <span>Unique License Plates</span>
+          <i class="fa-solid fa-fingerprint text-slate-400"></i>
+        </div>
+        <div class="text-2xl font-display font-bold text-slate-900" id="statUniquePlates">0</div>
+        <div class="text-[11px] text-slate-500 font-medium mt-1">Distinct vehicle identities</div>
+      </div>
+
+      <div class="card-clean p-5">
+        <div class="flex items-center justify-between text-slate-500 text-xs font-medium mb-1">
+          <span>Verified Indian Plates</span>
+          <i class="fa-solid fa-certificate text-blue-600"></i>
+        </div>
+        <div class="text-2xl font-display font-bold text-slate-900" id="statValidPlates">0</div>
+        <div class="text-[11px] text-blue-600 font-medium mt-1">Official format compliance</div>
+      </div>
+
+      <div class="card-clean p-5">
+        <div class="flex items-center justify-between text-slate-500 text-xs font-medium mb-1">
+          <span>Average Accuracy</span>
+          <i class="fa-solid fa-gauge text-slate-400"></i>
+        </div>
+        <div class="text-2xl font-display font-bold text-slate-900" id="statAvgConf">0.0%</div>
+        <div class="text-[11px] text-slate-500 font-medium mt-1">Recognition confidence</div>
+      </div>
+    </section>
+
+    <!-- NAVIGATION TABS -->
+    <div class="border-b border-slate-200">
+      <nav class="flex space-x-6 sm:space-x-8" aria-label="Tabs">
+        <button onclick="switchTab('upload')" id="tabBtn-upload" class="tab-btn active border-b-2 border-blue-600 text-blue-600 pb-3 text-sm font-semibold flex items-center space-x-2">
+          <i class="fa-solid fa-cloud-arrow-up text-xs"></i>
+          <span>1. Upload Photo or Video</span>
+        </button>
+        <button onclick="switchTab('snapshot')" id="tabBtn-snapshot" class="tab-btn border-b-2 border-transparent text-slate-500 hover:text-slate-800 pb-3 text-sm font-medium flex items-center space-x-2">
+          <i class="fa-solid fa-camera text-xs"></i>
+          <span>2. Live Snapshot</span>
+        </button>
+        <button onclick="switchTab('stream')" id="tabBtn-stream" class="tab-btn border-b-2 border-transparent text-slate-500 hover:text-slate-800 pb-3 text-sm font-medium flex items-center space-x-2">
+          <i class="fa-solid fa-video text-xs"></i>
+          <span>3. Real-Time Stream</span>
+        </button>
+        <button onclick="switchTab('database')" id="tabBtn-database" class="tab-btn border-b-2 border-transparent text-slate-500 hover:text-slate-800 pb-3 text-sm font-medium flex items-center space-x-2">
+          <i class="fa-solid fa-database text-xs"></i>
+          <span>4. Database Records</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- ================= TAB 1: UPLOAD PHOTO OR VIDEO ================= -->
+    <section id="tab-upload" class="tab-content block space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <!-- Upload Controls -->
+        <div class="lg:col-span-5 space-y-5">
+          <div class="card-clean p-6 space-y-4">
+            <h3 class="text-sm font-display font-bold text-slate-900 flex items-center space-x-2">
+              <i class="fa-solid fa-file-arrow-up text-blue-600"></i>
+              <span>Upload Photo or Video</span>
+            </h3>
+
+            <!-- Unified Dropzone for Photos & Videos -->
+            <div id="dropZone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-8 text-center cursor-pointer transition bg-slate-50/50 hover:bg-blue-50/30 group">
+              <input type="file" id="fileInput" accept="image/*,video/*" class="hidden">
+              <div class="space-y-2.5">
+                <div class="w-12 h-12 mx-auto rounded-full bg-white border border-slate-200 flex items-center justify-center text-slate-400 group-hover:text-blue-600 shadow-sm transition">
+                  <i class="fa-solid fa-photo-film text-lg"></i>
+                </div>
+                <div>
+                  <p class="text-xs font-semibold text-slate-800">Click to upload or drag & drop</p>
+                  <p class="text-[11px] text-slate-500 mt-0.5">Supports Car & Bike Photos (JPG, PNG) or Videos (MP4, AVI, MOV)</p>
+                </div>
+              </div>
+            </div>
+
+            <div class="p-3.5 bg-blue-50/60 border border-blue-100 rounded-xl text-xs text-blue-800 space-y-1">
+              <div class="font-semibold flex items-center space-x-1.5">
+                <i class="fa-solid fa-motorcycle text-blue-600"></i>
+                <span>Multi-Vehicle & Bike Detection:</span>
+              </div>
+              <p class="text-[11px] text-slate-600 leading-relaxed">
+                Upload any traffic video or photo. The system detects all vehicles and bikes, extracts every unique license plate, and logs them all automatically into the database.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Results Card -->
+        <div class="lg:col-span-7 space-y-4">
+          <div class="card-clean p-6 min-h-[400px] flex flex-col justify-center" id="uploadResultContainer">
+            
+            <!-- Default Placeholder -->
+            <div id="uploadPlaceholder" class="text-center py-14 space-y-2.5">
+              <div class="w-12 h-12 mx-auto rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-400">
+                <i class="fa-solid fa-car text-lg"></i>
+              </div>
+              <p class="text-sm font-semibold text-slate-800">No File Uploaded Yet</p>
+              <p class="text-xs text-slate-500 max-w-sm mx-auto">Upload an image or video to identify all car and bike license plates and automatically store them.</p>
+            </div>
+
+            <!-- Loading Spinner -->
+            <div id="uploadLoading" class="hidden text-center py-14 space-y-3">
+              <div class="w-9 h-9 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+              <p class="text-xs font-semibold text-slate-600" id="uploadLoadingText">Processing file & analyzing license plates...</p>
+            </div>
+
+            <!-- Active Results -->
+            <div id="uploadResults" class="hidden space-y-5">
+              <!-- Summary Banner -->
+              <div class="p-3.5 bg-emerald-50 border border-emerald-200 rounded-xl flex items-center justify-between text-xs text-emerald-800">
+                <span class="flex items-center space-x-2 font-medium" id="uploadSuccessMessage">
+                  <i class="fa-solid fa-circle-check text-emerald-600"></i>
+                  <span>Processed and automatically saved to Database!</span>
+                </span>
+                <span class="text-[11px] font-mono text-emerald-700" id="saveTimestamp"></span>
+              </div>
+
+              <!-- Annotated Preview (for Images) -->
+              <div id="annotatedImageWrapper" class="rounded-xl overflow-hidden border border-slate-200 bg-slate-900 flex items-center justify-center max-h-[300px]">
+                <img id="uploadAnnotatedImg" class="w-full object-contain max-h-[300px]" alt="Detected Vehicle">
+              </div>
+
+              <!-- Rendered Plates List -->
+              <div class="space-y-3">
+                <div class="flex items-center justify-between pb-1 border-b border-slate-100">
+                  <h4 class="text-xs font-bold text-slate-700 uppercase tracking-wider" id="platesFoundHeading">Recognized License Plates</h4>
+                  <span class="text-xs text-slate-500" id="platesCountBadge"></span>
+                </div>
+                <div id="uploadPlatesList" class="space-y-3"></div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= TAB 2: LIVE SNAPSHOT ================= -->
+    <section id="tab-snapshot" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <div class="lg:col-span-6 space-y-4">
+          <div class="card-clean p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-display font-bold text-slate-900 flex items-center space-x-2">
+                <i class="fa-solid fa-camera text-blue-600"></i>
+                <span>Live Camera Viewfinder</span>
+              </h3>
+              <button onclick="startWebcam()" id="btnStartCam" class="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-white rounded-lg text-xs font-medium transition shadow-sm">
+                <i class="fa-solid fa-power-off mr-1 text-[10px]"></i> Open Camera
+              </button>
+            </div>
+
+            <div class="relative rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200">
+              <video id="snapshotVideo" autoplay playsinline class="w-full h-full object-cover hidden"></video>
+              <canvas id="snapshotCanvas" class="hidden"></canvas>
+              
+              <div id="cameraStandby" class="text-center p-6 space-y-1.5 text-slate-400">
+                <i class="fa-solid fa-video-slash text-2xl"></i>
+                <p class="text-xs">Camera is offline. Click "Open Camera" to access.</p>
+              </div>
+            </div>
+
+            <button onclick="captureSnapshot()" id="btnSnap" disabled class="w-full py-2.5 bg-blue-600 disabled:bg-slate-100 disabled:text-slate-400 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition flex items-center justify-center space-x-2 shadow-sm">
+              <i class="fa-solid fa-camera"></i>
+              <span>Capture Photo & Store to Database</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="lg:col-span-6 space-y-4">
+          <div class="card-clean p-6 min-h-[380px] flex flex-col justify-center" id="snapshotResultBox">
+            <div id="snapshotPlaceholder" class="text-center py-10 space-y-2 text-slate-400">
+              <i class="fa-solid fa-crosshairs text-2xl"></i>
+              <p class="text-xs font-medium text-slate-600">No snapshot captured yet.</p>
+              <p class="text-[11px] text-slate-400">Captured snapshots are recognized and stored immediately.</p>
+            </div>
+            
+            <div id="snapshotLoading" class="hidden text-center py-10 space-y-2">
+              <div class="w-8 h-8 border-3 border-blue-200 border-t-blue-600 rounded-full animate-spin mx-auto"></div>
+              <p class="text-xs font-semibold text-slate-600">Processing snapshot & saving to Database...</p>
+            </div>
+
+            <div id="snapshotActiveResult" class="hidden space-y-4"></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= TAB 3: REAL-TIME STREAM ================= -->
+    <section id="tab-stream" class="tab-content hidden space-y-6">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        <div class="lg:col-span-8 space-y-4">
+          <div class="card-clean p-6 space-y-4">
+            <div class="flex items-center justify-between">
+              <div>
+                <h3 class="text-sm font-display font-bold text-slate-900 flex items-center space-x-2">
+                  <i class="fa-solid fa-tower-broadcast text-blue-600"></i>
+                  <span>Real-Time Stream Processor</span>
+                </h3>
+                <p class="text-xs text-slate-500">Live bounding boxes with smart 10-second deduplication before cloud storage.</p>
+              </div>
+
+              <div class="flex items-center space-x-2.5">
+                <span class="text-xs font-mono font-semibold px-2.5 py-1 bg-slate-100 border border-slate-200 rounded-lg text-slate-700" id="liveFps">FPS: 0.0</span>
+                <button onclick="toggleStream()" id="btnToggleStream" class="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-semibold transition flex items-center space-x-1.5 shadow-sm">
+                  <i class="fa-solid fa-play text-[10px]"></i>
+                  <span id="streamBtnText">Start Stream</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="relative rounded-xl overflow-hidden bg-slate-900 aspect-video flex items-center justify-center border border-slate-200">
+              <video id="streamVideo" autoplay playsinline class="hidden"></video>
+              <canvas id="streamCanvas" class="w-full h-full object-cover"></canvas>
+              
+              <div id="streamStandby" class="text-center p-6 space-y-1.5 text-slate-400">
+                <i class="fa-solid fa-video text-2xl"></i>
+                <p class="text-xs">Stream paused. Click "Start Stream" above.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="lg:col-span-4 space-y-4">
+          <div class="card-clean p-6 min-h-[400px] flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
+              <h4 class="text-xs font-semibold text-slate-600 uppercase tracking-wider">Live Scanned Vehicles</h4>
+              <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            </div>
+            <div class="flex-1 overflow-y-auto space-y-2.5 max-h-[440px]" id="streamTickerList">
+              <div class="text-center py-16 text-slate-400 text-xs">
+                Plates detected in real time will log here automatically.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ================= TAB 4: DATABASE & LOGS ================= -->
+    <section id="tab-database" class="tab-content hidden space-y-6">
+      <div class="card-clean p-6 space-y-5">
+        
+        <!-- Filter Controls -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-3">
+          <div class="flex-1 w-full sm:w-auto relative">
+            <i class="fa-solid fa-search absolute left-3.5 top-1/2 transform -translate-y-1/2 text-slate-400 text-xs"></i>
+            <input type="text" id="dbSearchInput" oninput="loadDatabaseRecords()" placeholder="Search plate number, RTO district, state..." class="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-800 placeholder-slate-400 focus:outline-none focus:border-blue-500 transition">
+          </div>
+
+          <div class="flex items-center space-x-2.5 w-full sm:w-auto justify-end">
+            <select id="dbStateFilter" onchange="loadDatabaseRecords()" class="bg-slate-50 border border-slate-200 text-xs text-slate-700 rounded-xl px-3 py-2 focus:outline-none focus:border-blue-500">
+              <option value="All">All States</option>
+              <option value="MH">Maharashtra (MH)</option>
+              <option value="DL">Delhi (DL)</option>
+              <option value="GJ">Gujarat (GJ)</option>
+              <option value="KA">Karnataka (KA)</option>
+              <option value="UP">Uttar Pradesh (UP)</option>
+            </select>
+
+            <button onclick="exportCSV()" class="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white font-medium text-xs rounded-xl transition flex items-center space-x-1.5 shadow-sm">
+              <i class="fa-solid fa-file-csv"></i>
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Clean Table -->
+        <div class="overflow-x-auto rounded-xl border border-slate-200">
+          <table class="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr class="border-b border-slate-200 bg-slate-50 text-slate-600 font-semibold uppercase text-[11px]">
+                <th class="py-3 px-4">ID</th>
+                <th class="py-3 px-4">Timestamp</th>
+                <th class="py-3 px-4">License Plate</th>
+                <th class="py-3 px-4">State</th>
+                <th class="py-3 px-4">Regional RTO</th>
+                <th class="py-3 px-4">Accuracy</th>
+                <th class="py-3 px-4">Source</th>
+                <th class="py-3 px-4">HSRP</th>
+                <th class="py-3 px-4 text-right">Saved Evidence</th>
+              </tr>
+            </thead>
+            <tbody id="dbTableBody" class="divide-y divide-slate-100 text-slate-700">
+              <tr>
+                <td colspan="9" class="text-center py-10 text-slate-400">Loading records from Database...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ================= EVIDENCE MODAL ================= -->
+  <div id="evidenceModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-xl w-full p-6 space-y-4 border border-slate-200 shadow-xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h4 class="text-sm font-display font-bold text-slate-900 flex items-center space-x-2">
+          <i class="fa-solid fa-shield text-blue-600"></i>
+          <span id="modalPlateTitle">Stored Vehicle Evidence</span>
+        </h4>
+        <button onclick="closeModal()" class="text-slate-400 hover:text-slate-700 transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs font-semibold text-slate-500 mb-2">Cropped License Plate:</p>
+          <div class="rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center min-h-[110px]">
+            <img id="modalCropImg" class="w-full object-contain" alt="Plate Crop">
+          </div>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-slate-500 mb-2">Full Vehicle Snapshot:</p>
+          <div class="rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center min-h-[110px]">
+            <img id="modalFullImg" class="w-full object-contain max-h-[200px]" alt="Vehicle Snapshot">
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/app.js"></script>
+</body>
+</html>

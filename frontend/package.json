@@ -1,0 +1,10 @@
+{
+  "name": "sakshi-alpr-india-frontend",
+  "version": "2.0.0",
+  "description": "Enterprise Frontend Dashboard for Sakshi ALPR India",
+  "scripts": {
+    "start": "..\\backend\\venv\\Scripts\\python.exe run_frontend.py",
+    "dev": "..\\backend\\venv\\Scripts\\python.exe run_frontend.py"
+  },
+  "keywords": ["alpr", "anpr", "yolov8", "ocr", "india", "sakshi-alpr"]
+}

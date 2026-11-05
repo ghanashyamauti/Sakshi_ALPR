@@ -1,0 +1,39 @@
+version: '3.8'
+
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: sakshi-alpr-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./data/alpr.db}
+      - HOST=0.0.0.0
+      - PORT=8000
+      - CORS_ORIGINS=["*"]
+      - CONFIDENCE_THRESHOLD=0.30
+      - OCR_CONFIDENCE_THRESHOLD=0.35
+      - SAVE_DETECTIONS=True
+    volumes:
+      - backend-data:/workspace/backend/data
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: sakshi-alpr-frontend
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - BACKEND_URL=http://localhost:8000
+      - APP_TITLE=Sakshi ALPR India
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  backend-data:

@@ -1,0 +1,12 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+references/
+.env
+data/captures/full_frames/*
+data/captures/cropped_plates/*
+!data/captures/.gitkeep

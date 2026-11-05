@@ -1,0 +1,48 @@
+# Virtual Environments
+venv/
+.venv/
+env/
+**/venv/
+**/.venv/
+**/env/
+
+# Python cache & artifacts
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+
+# Environment files with sensitive credentials
+.env
+**/.env
+!.env.example
+!**/.env.example
+
+# Large Dataset References (training data)
+references/
+**/references/
+backend/references/
+
+# Dynamic User Uploads & Captures
+backend/data/database/*.db
+backend/data/captures/full_frames/*
+backend/data/captures/cropped_plates/*
+backend/data/cropped_plates/*.jpg
+backend/data/full_frames/*.jpg
+!backend/data/cropped_plates/.gitkeep
+!backend/data/full_frames/.gitkeep
+!backend/data/samples/
+
+# Node & Frontend
+node_modules/
+dist/
+.cache/
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
