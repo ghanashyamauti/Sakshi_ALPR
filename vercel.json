@@ -1,0 +1,17 @@
+{
+  "version": 2,
+  "public": true,
+  "cleanUrls": true,
+  "builds": [
+    {
+      "src": "frontend/public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/frontend/public/$1"
+    }
+  ]
+}

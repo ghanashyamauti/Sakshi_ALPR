@@ -10,7 +10,11 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     PYTHONPATH=/workspace \
     HOST=0.0.0.0 \
-    PORT=8000
+    PORT=8000 \
+    MALLOC_ARENA_MAX=2 \
+    OMP_NUM_THREADS=1 \
+    OPENBLAS_NUM_THREADS=1 \
+    MKL_NUM_THREADS=1
 
 # Install OpenCV and PyTorch runtime system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \

@@ -48,16 +48,6 @@ app.include_router(detect_router)
 app.include_router(records_router)
 app.include_router(stats_router)
 
-@app.on_event("startup")
-async def startup_warmup():
-    """Pre-warm AI detection pipeline and models into memory on server start."""
-    try:
-        from backend.app.api.routes_detect import get_pipeline
-        get_pipeline()
-        print("[OK] Sakshi ALPR AI Pipeline & Models successfully loaded into memory!")
-    except Exception as e:
-        print(f"[WARNING] Pre-warm note: {e}")
-
 @app.get("/")
 async def root():
     return {

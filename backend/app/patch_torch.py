@@ -1,10 +1,19 @@
 """
 Sakshi ALPR India - Global PyTorch & Ultralytics Compatibility Patch
-Injects fallback modules and patches torch_load to prevent 'torch.utils.serialization'
-and 'weights_only' unpickling exceptions across all Python environments.
+Injects fallback modules, enables memory optimizations, and patches torch_load
+to prevent 'torch.utils.serialization' and OOM errors across all cloud platforms.
 """
+import os
 import sys
 import types
+
+# Limit thread memory pools to prevent high RSS memory bloat in 512MB containers
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["OPENBLAS_NUM_THREADS"] = "1"
+os.environ["MKL_NUM_THREADS"] = "1"
+os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
+os.environ["NUMEXPR_NUM_THREADS"] = "1"
+os.environ["MALLOC_ARENA_MAX"] = "2"
 
 # 1. Fallback module injection for torch.utils.serialization
 try:
@@ -31,9 +40,11 @@ except Exception:
     sys.modules["torch.utils.serialization"] = ser_mod
     sys.modules["torch.utils.serialization.config"] = cfg_mod
 
-# 2. Patch torch.load for PyTorch 2.6+
+# 2. Patch torch.load for PyTorch 2.6+ and configure low-memory execution
 try:
     import torch
+    torch.set_num_threads(1)
+    torch.set_grad_enabled(False)
     _orig_torch_load = torch.load
 
     def _patched_torch_load(*args, **kwargs):

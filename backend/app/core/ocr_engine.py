@@ -103,6 +103,8 @@ class LicensePlateOCR:
             # If this variant yields a valid Indian plate format, accept immediately!
             _, _, is_valid = IndianPlatePostProcessor.process(combined_text)
             if is_valid:
+                import gc
+                gc.collect()
                 return combined_text, max(avg_conf, 0.75), resized
 
         # Fallback if neither variant was immediately valid: return whatever was found
@@ -111,8 +113,12 @@ class LicensePlateOCR:
             if results:
                 text = "".join([r[1].strip() for r in results])
                 conf = float(np.mean([r[2] for r in results]))
+                import gc
+                gc.collect()
                 return text, conf, resized
         except Exception:
             pass
 
+        import gc
+        gc.collect()
         return "", 0.0, resized
