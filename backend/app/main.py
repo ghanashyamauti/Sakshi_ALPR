@@ -1,6 +1,11 @@
 """
 Sakshi ALPR India - FastAPI Main Server
 """
+try:
+    import torch.utils.serialization
+except Exception:
+    pass
+
 import torch
 import ultralytics.nn.tasks as tasks
 
@@ -19,6 +24,12 @@ def _safe_load_wrapper(weight, safe_only=None):
     return ckpt, str(weight)
 
 tasks.torch_safe_load = _safe_load_wrapper
+
+try:
+    import ultralytics.engine.model as model_engine
+    model_engine.torch_safe_load = _safe_load_wrapper
+except Exception:
+    pass
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -64,6 +75,16 @@ app.mount("/captures", StaticFiles(directory=str(STORAGE_DIR)), name="captures")
 app.include_router(detect_router)
 app.include_router(records_router)
 app.include_router(stats_router)
+
+@app.on_event("startup")
+async def startup_warmup():
+    """Pre-warm AI detection pipeline and models into memory on server start."""
+    try:
+        from backend.app.api.routes_detect import get_pipeline
+        get_pipeline()
+        print("[OK] Sakshi ALPR AI Pipeline & Models successfully loaded into memory!")
+    except Exception as e:
+        print(f"[WARNING] Pre-warm note: {e}")
 
 @app.get("/")
 async def root():

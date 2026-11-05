@@ -25,3 +25,4 @@ EXPOSE 3000
 
 # Start lightweight frontend server with dynamic backend URL injection
 CMD ["python", "run_frontend.py"]
+

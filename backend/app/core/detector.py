@@ -1,6 +1,11 @@
 """
 YOLOv8 License Plate Detector Module
 """
+try:
+    import torch.utils.serialization
+except Exception:
+    pass
+
 import os
 from typing import List, Dict, Any, Optional
 import numpy as np
@@ -22,6 +27,12 @@ def _safe_load_wrapper(weight, safe_only=None):
     return ckpt, str(weight)
 
 tasks.torch_safe_load = _safe_load_wrapper
+
+try:
+    import ultralytics.engine.model as model_engine
+    model_engine.torch_safe_load = _safe_load_wrapper
+except Exception:
+    pass
 
 from ultralytics import YOLO
 from backend.app.config import PLATE_MODEL_PATH, CONFIDENCE_THRESHOLD

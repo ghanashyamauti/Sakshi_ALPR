@@ -10,3 +10,4 @@ references/
 data/captures/full_frames/*
 data/captures/cropped_plates/*
 !data/captures/.gitkeep
+
