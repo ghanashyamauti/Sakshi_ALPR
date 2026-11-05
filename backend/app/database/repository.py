@@ -54,10 +54,12 @@ class PlateRepository:
             query = db.query(PlateRecord)
 
             if search:
-                q = f"%{search.strip().upper()}%"
+                q = f"%{search.strip()}%"
                 query = query.filter(
                     PlateRecord.plate_number.ilike(q) |
                     PlateRecord.rto_district.ilike(q) |
+                    PlateRecord.state_name.ilike(q) |
+                    PlateRecord.state_code.ilike(q) |
                     PlateRecord.raw_text.ilike(q)
                 )
 

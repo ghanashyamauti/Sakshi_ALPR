@@ -1,11 +1,13 @@
 """
 Optical Character Recognition (OCR) Engine
+High-precision multi-pass OCR for Indian vehicle and bike number plates.
 """
-from typing import Tuple, Optional, List
-import numpy as np
 import cv2
+import numpy as np
 import easyocr
-from backend.app.config import OCR_CONFIDENCE_THRESHOLD, EASYOCR_MODEL_DIR
+from typing import Tuple, Optional, List
+import backend.app.patch_torch  # noqa: F401
+from backend.app.config import EASYOCR_MODEL_DIR
 
 class LicensePlateOCR:
     _instance: Optional["LicensePlateOCR"] = None
@@ -27,66 +29,90 @@ class LicensePlateOCR:
         return cls._instance
 
     @staticmethod
-    def preprocess_plate(crop: np.ndarray) -> np.ndarray:
+    def enhance_crop(crop: np.ndarray, target_height: int = 140) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Upscales plate crop to optimal resolution and produces two enhanced versions:
+        1. Resized high-detail color crop
+        2. Sharpened unsharp-masked crop for thin font strokes
+        """
         if crop is None or crop.size == 0:
-            return crop
+            return crop, crop
 
         h, w = crop.shape[:2]
-        if h < 60:
-            scale = 80.0 / max(h, 1)
-            crop = cv2.resize(crop, (int(w * scale), 80), interpolation=cv2.INTER_CUBIC)
+        scale = max(target_height / max(h, 1), 1.0)
+        new_w = int(w * scale)
+        resized = cv2.resize(crop, (new_w, target_height), interpolation=cv2.INTER_CUBIC)
 
-        if len(crop.shape) == 3:
-            gray = cv2.cvtColor(crop, cv2.COLOR_BGR2GRAY)
+        # Grayscale & Sharpening
+        if len(resized.shape) == 3:
+            gray = cv2.cvtColor(resized, cv2.COLOR_BGR2GRAY)
         else:
-            gray = crop
+            gray = resized.copy()
 
-        filtered = cv2.bilateralFilter(gray, 9, 75, 75)
-        clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
-        enhanced = clahe.apply(filtered)
-        return enhanced
+        kernel = np.array([[-1, -1, -1],
+                           [-1,  9, -1],
+                           [-1, -1, -1]])
+        sharpened = cv2.filter2D(gray, -1, kernel)
+
+        return resized, sharpened
 
     def read_text(
         self,
         crop: np.ndarray,
-        confidence_threshold: float = OCR_CONFIDENCE_THRESHOLD
+        confidence_threshold: float = 0.20
     ) -> Tuple[str, float, np.ndarray]:
         if crop is None or crop.size == 0:
             return "", 0.0, crop
 
-        preprocessed = self.preprocess_plate(crop)
-        
-        results = self.reader.readtext(
-            preprocessed,
-            allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-            detail=1,
-            paragraph=False
-        )
+        resized, sharpened = self.enhance_crop(crop)
 
-        if not results:
-            results = self.reader.readtext(
-                crop,
-                allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-                detail=1,
-                paragraph=False
-            )
+        from backend.app.core.postprocessor import IndianPlatePostProcessor
 
-        if not results:
-            return "", 0.0, preprocessed
+        # Check raw resized first, then sharpened
+        for img_variant in (resized, sharpened):
+            try:
+                results = self.reader.readtext(
+                    img_variant,
+                    allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+                    detail=1,
+                    paragraph=False,
+                    text_threshold=0.20,
+                    link_threshold=0.35,
+                    low_text=0.20
+                )
+            except Exception:
+                continue
 
-        sorted_results = sorted(results, key=lambda r: (r[0][0][1] // 25, r[0][0][0]))
+            if not results:
+                continue
 
-        extracted_words: List[str] = []
-        confidences: List[float] = []
+            # Sort tokens horizontally and vertically (row-major)
+            sorted_results = sorted(results, key=lambda r: (r[0][0][1] // 30, r[0][0][0]))
 
-        for bbox, text, conf in sorted_results:
-            clean = text.strip()
-            if clean and conf >= confidence_threshold:
-                extracted_words.append(clean)
-                confidences.append(float(conf))
+            words = []
+            confs = []
+            for _, text, conf in sorted_results:
+                clean = text.strip()
+                if clean:
+                    words.append(clean)
+                    confs.append(float(conf))
 
-        raw_text = "".join(extracted_words)
-        mean_conf = float(np.mean(confidences)) if confidences else 0.0
+            combined_text = "".join(words)
+            avg_conf = float(np.mean(confs)) if confs else 0.0
 
-        return raw_text, mean_conf, preprocessed
+            # If this variant yields a valid Indian plate format, accept immediately!
+            _, _, is_valid = IndianPlatePostProcessor.process(combined_text)
+            if is_valid:
+                return combined_text, max(avg_conf, 0.75), resized
 
+        # Fallback if neither variant was immediately valid: return whatever was found
+        try:
+            results = self.reader.readtext(resized, allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', paragraph=False)
+            if results:
+                text = "".join([r[1].strip() for r in results])
+                conf = float(np.mean([r[2] for r in results]))
+                return text, conf, resized
+        except Exception:
+            pass
+
+        return "", 0.0, resized
