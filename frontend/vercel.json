@@ -1,4 +1,5 @@
 {
+  "buildCommand": "echo Frontend Ready",
   "outputDirectory": "public",
-  "cleanUrls": true
+  "framework": null
 }

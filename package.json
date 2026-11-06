@@ -1,0 +1,9 @@
+{
+  "name": "sakshi-alpr-frontend",
+  "version": "2.0.0",
+  "private": true,
+  "description": "Sakshi ALPR India - Vehicle Intelligence Dashboard",
+  "scripts": {
+    "build": "echo Frontend Ready"
+  }
+}
