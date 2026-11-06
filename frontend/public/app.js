@@ -3,7 +3,21 @@
  * Supports Photo & Video Upload with Multi-Vehicle / Bike License Plate extraction
  */
 
-const BACKEND_URL = window.BACKEND_API_URL || "http://localhost:8000";
+function getBackendUrl() {
+  if (window.BACKEND_API_URL && window.BACKEND_API_URL.trim()) {
+    return window.BACKEND_API_URL.trim().replace(/\/+$/, "");
+  }
+  const saved = localStorage.getItem("SAKSHI_BACKEND_URL");
+  if (saved && saved.trim()) {
+    return saved.trim().replace(/\/+$/, "");
+  }
+  if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
+    return "http://localhost:8000";
+  }
+  return "";
+}
+
+let BACKEND_URL = getBackendUrl();
 
 let webcamStream = null;
 let isStreaming = false;
@@ -12,10 +26,77 @@ let lastFrameTime = performance.now();
 let frameCount = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
-  loadStats();
+  updateBackendPill();
+  if (!BACKEND_URL && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
+    promptBackendUrl();
+  } else {
+    loadStats();
+  }
   setupDropZone();
-  setInterval(loadStats, 8000);
+  setInterval(() => {
+    if (BACKEND_URL) loadStats();
+  }, 8000);
 });
+
+function updateBackendPill() {
+  const label = document.getElementById("backendStatusLabel");
+  const dot = document.getElementById("backendStatusDot");
+  if (!label || !dot) return;
+
+  if (!BACKEND_URL) {
+    label.innerText = "Connect Render API";
+    dot.className = "w-2 h-2 rounded-full bg-amber-500 animate-pulse";
+    return;
+  }
+
+  try {
+    const parsed = new URL(BACKEND_URL);
+    const host = parsed.hostname;
+    label.innerText = host.includes("onrender.com") ? "Render Active" : host;
+    dot.className = "w-2 h-2 rounded-full bg-emerald-500";
+  } catch (e) {
+    label.innerText = "API Connected";
+    dot.className = "w-2 h-2 rounded-full bg-emerald-500";
+  }
+}
+
+function promptBackendUrl() {
+  const input = document.getElementById("backendUrlInput");
+  if (input) input.value = BACKEND_URL || "";
+  document.getElementById("backendUrlModal").classList.remove("hidden");
+}
+
+function closeBackendModal() {
+  document.getElementById("backendUrlModal").classList.add("hidden");
+}
+
+function saveBackendUrl() {
+  const input = document.getElementById("backendUrlInput");
+  let val = (input.value || "").trim().replace(/\/+$/, "");
+  if (!val) {
+    alert("Please enter a valid backend URL.");
+    return;
+  }
+  if (!val.startsWith("http://") && !val.startsWith("https://")) {
+    val = "https://" + val;
+  }
+  localStorage.setItem("SAKSHI_BACKEND_URL", val);
+  BACKEND_URL = val;
+  closeBackendModal();
+  updateBackendPill();
+  loadStats();
+  if (document.getElementById("tab-database") && !document.getElementById("tab-database").classList.contains("hidden")) {
+    loadDatabaseRecords();
+  }
+}
+
+function resetLocalBackendUrl() {
+  localStorage.removeItem("SAKSHI_BACKEND_URL");
+  BACKEND_URL = "http://localhost:8000";
+  closeBackendModal();
+  updateBackendPill();
+  loadStats();
+}
 
 // ================= TAB NAVIGATION =================
 function switchTab(tabId) {
@@ -114,6 +195,10 @@ function setEngineMode(mode) {
 }
 
 async function uploadPhoto(file) {
+  if (!BACKEND_URL) {
+    promptBackendUrl();
+    return;
+  }
   const engineLabel = currentEngine === "ai" ? "Gemini Vision AI (100% Accuracy)" : "Local YOLOv8 Engine";
   showUploadLoading(true, `Processing photo with ${engineLabel}...`);
   document.getElementById("annotatedImageWrapper").classList.remove("hidden");
@@ -144,6 +229,10 @@ async function uploadPhoto(file) {
 }
 
 async function uploadVideo(file) {
+  if (!BACKEND_URL) {
+    promptBackendUrl();
+    return;
+  }
   const engineLabel = currentEngine === "ai" ? "Gemini Vision AI" : "Local YOLOv8 Engine";
   showUploadLoading(true, `Scanning video frames with ${engineLabel}...`);
   document.getElementById("annotatedImageWrapper").classList.add("hidden");
@@ -522,9 +611,13 @@ function appendStreamTicker(plate) {
 
 // ================= DATABASE TABLE LOADER =================
 async function loadDatabaseRecords() {
+  const tbody = document.getElementById("dbTableBody");
+  if (!BACKEND_URL) {
+    tbody.innerHTML = `<tr><td colspan="9" class="text-center py-10 text-amber-600"><i class="fa-solid fa-plug text-lg mb-1 block text-amber-500"></i>Backend API not connected. <button onclick="promptBackendUrl()" class="underline font-bold text-blue-600">Connect your Render API</button></td></tr>`;
+    return;
+  }
   const search = document.getElementById("dbSearchInput").value;
   const state = document.getElementById("dbStateFilter").value;
-  const tbody = document.getElementById("dbTableBody");
 
   let url = `${BACKEND_URL}/api/v1/records?limit=100`;
   if (search) url += `&search=${encodeURIComponent(search)}`;

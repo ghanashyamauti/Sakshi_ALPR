@@ -14,7 +14,16 @@
   <!-- FontAwesome Icons -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   
-  <!-- Tailwind CSS -->
+  <!-- Tailwind CSS with notice suppressor -->
+  <script>
+    (function() {
+      const origWarn = console.warn;
+      console.warn = function(...args) {
+        if (args[0] && typeof args[0] === 'string' && args[0].includes('cdn.tailwindcss.com')) return;
+        origWarn.apply(console, args);
+      };
+    })();
+  </script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -128,6 +137,15 @@
           </h1>
           <p class="text-xs text-slate-500 font-normal">Automated License Plate Recognition & Vehicle Identification</p>
         </div>
+      </div>
+
+      <!-- Backend API Connection Indicator (for Vercel & Render) -->
+      <div class="flex items-center space-x-2">
+        <button onclick="promptBackendUrl()" id="btnBackendStatus" class="px-3 py-1.5 rounded-lg text-xs font-semibold border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition flex items-center space-x-2 shadow-sm">
+          <span class="w-2 h-2 rounded-full bg-emerald-500" id="backendStatusDot"></span>
+          <span id="backendStatusLabel">API: Connecting...</span>
+          <i class="fa-solid fa-link text-[10px] text-slate-400"></i>
+        </button>
       </div>
 
     </div>
@@ -525,6 +543,41 @@
           <div id="modalFullContainer" class="rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center min-h-[140px] p-2">
             <span class="text-slate-400 text-xs">Loading evidence...</span>
           </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= BACKEND URL MODAL (FOR VERCEL & RENDER) ================= -->
+  <div id="backendUrlModal" class="fixed inset-0 z-50 hidden bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 border border-slate-200 shadow-xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+        <h4 class="text-sm font-display font-bold text-slate-900 flex items-center space-x-2">
+          <i class="fa-solid fa-server text-blue-600"></i>
+          <span>Configure Backend API Server</span>
+        </h4>
+        <button onclick="closeBackendModal()" class="text-slate-400 hover:text-slate-700 transition">
+          <i class="fa-solid fa-xmark text-lg"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <p class="text-xs text-slate-600 leading-relaxed">
+          Enter your deployed <strong>Render Backend API URL</strong> (e.g., <code class="text-blue-600 bg-blue-50 px-1 py-0.5 rounded font-mono">https://sakshi-alpr.onrender.com</code>).
+        </p>
+
+        <div>
+          <label class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block mb-1">Backend API URL:</label>
+          <input type="url" id="backendUrlInput" placeholder="https://sakshi-alpr.onrender.com" class="w-full px-3 py-2 text-xs bg-slate-50 border border-slate-300 rounded-lg focus:outline-none focus:ring-1 focus:ring-blue-500 font-mono text-slate-800" />
+        </div>
+
+        <div class="flex items-center justify-between pt-2">
+          <button onclick="resetLocalBackendUrl()" class="text-xs text-slate-400 hover:text-slate-600 underline">
+            Reset to Localhost
+          </button>
+          <button onclick="saveBackendUrl()" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg shadow-sm transition">
+            Save & Connect
+          </button>
         </div>
       </div>
     </div>
