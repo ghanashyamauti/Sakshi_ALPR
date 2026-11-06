@@ -24,6 +24,12 @@ class CustomFrontendHandler(SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(PUBLIC_DIR), **kwargs)
 
     def do_GET(self):
+        # Cleanly handle browser favicon requests to avoid 404 logs
+        if self.path in ("/favicon.ico", "/favicon.png"):
+            self.send_response(204)
+            self.end_headers()
+            return
+
         # Serve index.html with injected BACKEND_API_URL script tag
         if self.path in ("/", "/index.html"):
             index_path = PUBLIC_DIR / "index.html"

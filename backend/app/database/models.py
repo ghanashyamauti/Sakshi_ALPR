@@ -19,18 +19,35 @@ class PlateRecord(Base):
     state_name = Column(String(64), nullable=True)
     rto_district = Column(String(128), nullable=True)
     
-    detection_mode = Column(String(32), nullable=False, default="Upload")  # Upload, Snapshot, Live Stream
+    detection_mode = Column(String(32), nullable=False, default="Upload")  # Upload, Snapshot, Live Stream, Video Upload
     timestamp = Column(DateTime, default=datetime.utcnow, index=True)
     
     full_image_path = Column(Text, nullable=True)
     crop_image_path = Column(Text, nullable=True)
     is_valid_format = Column(Boolean, default=False)
+    is_hsrp = Column(Boolean, default=False, nullable=True)
+    hsrp_status = Column(String(64), default="Standard Non-HSRP", nullable=True)
     notes = Column(Text, nullable=True)
 
     def to_dict(self):
         # Extract relative URL for serving static crops
-        crop_name = self.crop_image_path.replace("\\", "/").split("/")[-1] if self.crop_image_path else ""
-        full_name = self.full_image_path.replace("\\", "/").split("/")[-1] if self.full_image_path else ""
+        crop_name = ""
+        if self.crop_image_path and str(self.crop_image_path).strip() not in ("None", "null", ""):
+            crop_name = str(self.crop_image_path).replace("\\", "/").split("/")[-1]
+
+        full_name = ""
+        if self.full_image_path and str(self.full_image_path).strip() not in ("None", "null", ""):
+            full_name = str(self.full_image_path).replace("\\", "/").split("/")[-1]
+
+        is_hsrp_val = bool(self.is_hsrp) if self.is_hsrp is not None else False
+        status_val = self.hsrp_status
+        if not status_val:
+            if is_hsrp_val:
+                status_val = "Verified HSRP"
+            elif self.is_valid_format:
+                status_val = "Standard Non-HSRP"
+            else:
+                status_val = "Fancy / Non-Standard"
 
         return {
             "id": self.id,
@@ -47,8 +64,10 @@ class PlateRecord(Base):
             "full_image_path": self.full_image_path,
             "crop_image_path": self.crop_image_path,
             "is_valid_format": self.is_valid_format,
+            "is_hsrp": is_hsrp_val,
+            "hsrp_status": status_val,
+            "notes": self.notes,
         }
 
     def __repr__(self):
-        return f"<PlateRecord(id={self.id}, plate='{self.plate_number}', state='{self.state_code}')>"
-
+        return f"<PlateRecord(id={self.id}, plate='{self.plate_number}', state='{self.state_code}', hsrp='{self.hsrp_status}')>"

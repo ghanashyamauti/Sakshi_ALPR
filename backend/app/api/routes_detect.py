@@ -5,7 +5,7 @@ import backend.app.patch_torch  # noqa: F401
 import base64
 from pathlib import Path
 from typing import Optional
-from fastapi import APIRouter, File, UploadFile, HTTPException, Body
+from fastapi import APIRouter, File, UploadFile, HTTPException, Body, Form, Query
 from pydantic import BaseModel
 
 from backend.app.config import SAMPLES_DIR
@@ -25,9 +25,32 @@ def get_pipeline() -> ALPRPipeline:
 class SnapshotPayload(BaseModel):
     image_base64: str
     detection_mode: str = "Live Snapshot"
+    engine: str = "ai"
+
+class AIKeyPayload(BaseModel):
+    api_key: str
+
+@router.get("/ai-status")
+async def get_ai_status():
+    """Returns whether Gemini Multimodal Vision AI is enabled."""
+    from backend.app.core.vision_ai import GeminiVisionALPR
+    return {"ai_enabled": GeminiVisionALPR.get_instance().is_available()}
+
+@router.post("/set-ai-key")
+async def set_ai_key(payload: AIKeyPayload):
+    """Dynamically activates Gemini Vision AI mode at runtime with provided key."""
+    import os
+    from backend.app.core.vision_ai import GeminiVisionALPR
+    key = payload.api_key.strip()
+    os.environ["GEMINI_API_KEY"] = key
+    GeminiVisionALPR.get_instance().api_key = key
+    return {"success": True, "ai_enabled": GeminiVisionALPR.get_instance().is_available()}
 
 @router.post("/upload")
-async def detect_upload(file: UploadFile = File(...)):
+async def detect_upload(
+    file: UploadFile = File(...),
+    engine: str = Form("ai")
+):
     """Upload a vehicle image file (.jpg, .png) for license plate recognition."""
     if not file.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="Uploaded file must be an image.")
@@ -39,20 +62,25 @@ async def detect_upload(file: UploadFile = File(...)):
             content,
             detection_mode="Upload",
             save_to_db=True,
-            is_live_stream=False
+            is_live_stream=False,
+            engine=engine
         )
         return {
             "success": True,
             "filename": file.filename,
             "plates_detected": result["count"],
             "plates": result["plates"],
-            "annotated_image": result["annotated_image_base64"]
+            "annotated_image": result["annotated_image_base64"],
+            "engine": result.get("engine", "Local YOLOv8 + OCR")
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/upload-video")
-async def detect_upload_video(file: UploadFile = File(...)):
+async def detect_upload_video(
+    file: UploadFile = File(...),
+    engine: str = Form("ai")
+):
     """Upload a vehicle video (.mp4, .avi, .mov) to detect and extract all bike & car license plates."""
     import tempfile
     import os
@@ -66,7 +94,7 @@ async def detect_upload_video(file: UploadFile = File(...)):
         temp_file.close()
 
         pipeline = get_pipeline()
-        result = pipeline.process_video(temp_file.name)
+        result = pipeline.process_video(temp_file.name, engine=engine)
         return {
             "success": True,
             "filename": file.filename,
@@ -74,7 +102,8 @@ async def detect_upload_video(file: UploadFile = File(...)):
             "total_frames": result["total_frames"],
             "processed_frames": result["processed_frames"],
             "unique_plates_count": result["unique_plates_count"],
-            "plates": result["plates"]
+            "plates": result["plates"],
+            "engine": result.get("engine", "Local YOLOv8 + OCR")
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

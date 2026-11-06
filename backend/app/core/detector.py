@@ -1,11 +1,12 @@
 """
 YOLOv8 License Plate Detector Module
+Supports high-resolution multi-scale inference for detecting both large vehicle plates
+and small, distant, or moving bike/scooter plates.
 """
 import backend.app.patch_torch  # noqa: F401
 import os
 from typing import List, Dict, Any, Optional
 import numpy as np
-import torch
 
 from ultralytics import YOLO
 from backend.app.config import PLATE_MODEL_PATH, CONFIDENCE_THRESHOLD
@@ -31,11 +32,36 @@ class LicensePlateDetector:
         self,
         image: np.ndarray,
         confidence_threshold: float = CONFIDENCE_THRESHOLD,
-        padding: int = 5
+        padding: int = 5,
+        imgsz: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
-        results = self.model(image, conf=confidence_threshold, verbose=False)
-        detections = []
+        """
+        Runs YOLOv8 detection with dynamic multi-scale resolution.
+        Higher imgsz preserves small motorcycle plates on 1080p/720p inputs.
+        """
+        if image is None or image.size == 0:
+            return []
+
         h, w = image.shape[:2]
+        
+        if imgsz is not None:
+            target_imgsz = imgsz
+        else:
+            max_dim = max(h, w)
+            if max_dim >= 1080:
+                target_imgsz = 1024
+            elif max_dim >= 720:
+                target_imgsz = 800
+            else:
+                target_imgsz = 640
+
+        try:
+            results = self.model(image, conf=confidence_threshold, imgsz=target_imgsz, verbose=False)
+        except Exception:
+            # Fallback to standard 640 if memory limit reached
+            results = self.model(image, conf=confidence_threshold, imgsz=640, verbose=False)
+
+        detections = []
 
         for result in results:
             boxes = result.boxes
@@ -56,6 +82,8 @@ class LicensePlateDetector:
                 y2_pad = min(h, y2 + padding)
 
                 crop = image[y1_pad:y2_pad, x1_pad:x2_pad]
+                if crop.size == 0 or crop.shape[0] < 5 or crop.shape[1] < 5:
+                    continue
 
                 detections.append({
                     "bbox": [int(x1), int(y1), int(x2), int(y2)],
@@ -66,4 +94,3 @@ class LicensePlateDetector:
                 })
 
         return detections
-

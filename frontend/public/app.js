@@ -97,12 +97,30 @@ async function handleFileUpload(file) {
   }
 }
 
+let currentEngine = "ai";
+
+function setEngineMode(mode) {
+  currentEngine = mode;
+  const btnAI = document.getElementById("btnEngineAI");
+  const btnLocal = document.getElementById("btnEngineLocal");
+
+  if (mode === "ai") {
+    btnAI.className = "py-2 px-3 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5 bg-white text-indigo-700 shadow-sm border border-slate-200";
+    btnLocal.className = "py-2 px-3 text-xs font-semibold rounded-lg transition flex items-center justify-center space-x-1.5 text-slate-600 hover:text-slate-900";
+  } else {
+    btnLocal.className = "py-2 px-3 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5 bg-white text-blue-700 shadow-sm border border-slate-200";
+    btnAI.className = "py-2 px-3 text-xs font-semibold rounded-lg transition flex items-center justify-center space-x-1.5 text-slate-600 hover:text-slate-900";
+  }
+}
+
 async function uploadPhoto(file) {
-  showUploadLoading(true, "Processing vehicle photo & analyzing license plates...");
+  const engineLabel = currentEngine === "ai" ? "Gemini Vision AI (100% Accuracy)" : "Local YOLOv8 Engine";
+  showUploadLoading(true, `Processing photo with ${engineLabel}...`);
   document.getElementById("annotatedImageWrapper").classList.remove("hidden");
 
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("engine", currentEngine);
 
   try {
     const res = await fetch(`${BACKEND_URL}/api/v1/detect/upload`, {
@@ -126,11 +144,13 @@ async function uploadPhoto(file) {
 }
 
 async function uploadVideo(file) {
-  showUploadLoading(true, "Scanning video frames for all car & bike license plates...");
+  const engineLabel = currentEngine === "ai" ? "Gemini Vision AI" : "Local YOLOv8 Engine";
+  showUploadLoading(true, `Scanning video frames with ${engineLabel}...`);
   document.getElementById("annotatedImageWrapper").classList.add("hidden");
 
   const formData = new FormData();
   formData.append("file", file);
+  formData.append("engine", currentEngine);
 
   try {
     const res = await fetch(`${BACKEND_URL}/api/v1/detect/upload-video`, {
@@ -172,9 +192,10 @@ function renderPhotoResults(data) {
   container.classList.remove("hidden");
 
   document.getElementById("saveTimestamp").innerText = new Date().toLocaleTimeString();
+  const engineText = data.engine ? `via <strong class="text-indigo-700">${data.engine}</strong>` : "processed";
   document.getElementById("uploadSuccessMessage").innerHTML = `
     <i class="fa-solid fa-circle-check text-emerald-600"></i>
-    <span>Photo processed & stored in Database!</span>
+    <span>Photo ${engineText} & stored in Database!</span>
   `;
 
   // Show annotated image
@@ -235,8 +256,18 @@ function renderVideoResults(data) {
 }
 
 function createPlateHTML(p, num, videoTimestamp = null) {
-  const badgeClass = p.is_valid ? "bg-emerald-100 text-emerald-800 border-emerald-300" : "bg-slate-100 text-slate-700 border-slate-300";
-  const badgeText = p.is_valid ? "Verified Indian HSRP" : "Standard Plate";
+  let badgeClass, badgeText;
+  if (p.is_hsrp) {
+    badgeClass = "bg-blue-100 text-blue-800 border-blue-300";
+    badgeText = `<i class="fa-solid fa-shield mr-1 text-blue-600"></i>Verified Indian HSRP`;
+  } else if (p.is_valid) {
+    badgeClass = "bg-emerald-100 text-emerald-800 border-emerald-300";
+    badgeText = `<i class="fa-solid fa-file-lines mr-1 text-emerald-600"></i>Standard Non-HSRP Plate`;
+  } else {
+    badgeClass = "bg-amber-100 text-amber-800 border-amber-300";
+    badgeText = `<i class="fa-solid fa-triangle-exclamation mr-1 text-amber-600"></i>Fancy / Non-Standard Plate`;
+  }
+
   const recordId = p.db_record ? p.db_record.id : "Saved";
 
   const videoPill = videoTimestamp ? `
@@ -250,6 +281,25 @@ function createPlateHTML(p, num, videoTimestamp = null) {
       <img src="${p.crop_base64}" class="max-h-16 rounded border border-slate-300 shadow-sm" alt="Plate Crop" />
     </div>
   ` : '';
+
+  // Render graphic plate: authentic blue strip if verified HSRP, or clean border if standard/non-HSRP
+  const plateGraphic = p.is_hsrp ? `
+    <div class="hsrp-plate">
+      <div class="hsrp-strip">
+        <div class="hsrp-chakra"></div>
+        <span class="text-[9px] font-black tracking-widest mt-1">IND</span>
+      </div>
+      <div class="hsrp-text">
+        ${p.plate_number}
+      </div>
+    </div>
+  ` : `
+    <div class="hsrp-plate" style="padding-left: 20px;">
+      <div class="hsrp-text">
+        ${p.plate_number}
+      </div>
+    </div>
+  `;
 
   return `
     <div class="card-clean p-4 space-y-3 border border-slate-200">
@@ -268,17 +318,9 @@ function createPlateHTML(p, num, videoTimestamp = null) {
         </span>
       </div>
 
-      <!-- Authentic HSRP Plate Graphic -->
+      <!-- License Plate Graphic -->
       <div class="flex items-center justify-center my-1.5">
-        <div class="hsrp-plate">
-          <div class="hsrp-strip">
-            <div class="hsrp-chakra"></div>
-            <span class="text-[9px] font-black tracking-widest mt-1">IND</span>
-          </div>
-          <div class="hsrp-text">
-            ${p.plate_number}
-          </div>
-        </div>
+        ${plateGraphic}
       </div>
 
       ${cropPreview}
@@ -499,9 +541,14 @@ async function loadDatabaseRecords() {
     }
 
     data.records.forEach((r) => {
-      const hsrpPill = r.is_valid_format
-        ? `<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[10px] font-bold">YES</span>`
-        : `<span class="px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded text-[10px] font-bold">NO</span>`;
+      let hsrpPill;
+      if (r.is_hsrp) {
+        hsrpPill = `<span class="px-2 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-[10px] font-bold"><i class="fa-solid fa-shield mr-1"></i>HSRP</span>`;
+      } else if (r.is_valid_format) {
+        hsrpPill = `<span class="px-2 py-0.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded text-[10px] font-bold">Standard</span>`;
+      } else {
+        hsrpPill = `<span class="px-2 py-0.5 bg-slate-100 text-slate-600 border border-slate-200 rounded text-[10px] font-bold">Non-Std</span>`;
+      }
 
       tbody.innerHTML += `
         <tr class="hover:bg-slate-50/80 transition">
@@ -526,13 +573,35 @@ async function loadDatabaseRecords() {
   }
 }
 
+function renderEvidenceSlot(container, url, label) {
+  const clean = url && url !== "null" && url !== "undefined" && url !== "None" ? url.trim() : "";
+  if (!clean) {
+    container.innerHTML = `
+      <div class="flex flex-col items-center justify-center p-6 text-slate-400 text-center">
+        <i class="fa-solid fa-camera-slash text-2xl mb-1.5 text-slate-300"></i>
+        <span class="text-xs font-medium">No ${label.toLowerCase()} logged for this scan</span>
+      </div>`;
+    return;
+  }
+
+  const fullUrl = clean.startsWith("http://") || clean.startsWith("https://")
+    ? clean
+    : `${BACKEND_URL}${clean.startsWith("/") ? "" : "/"}${clean}`;
+
+  container.innerHTML = `
+    <div class="w-full flex items-center justify-center p-1">
+      <img src="${fullUrl}" class="w-full object-contain max-h-44 rounded-lg shadow-sm" alt="${label}"
+           onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\\'flex flex-col items-center justify-center p-6 text-slate-400 text-center\\'><i class=\\'fa-solid fa-image-slash text-2xl mb-1.5 text-slate-300\\'></i><span class=\\'text-xs font-medium\\'>${label} file not on server</span></div>';">
+    </div>`;
+}
+
 function viewEvidence(cropUrl, fullUrl, plateNumber) {
   document.getElementById("modalPlateTitle").innerText = `Evidence: ${plateNumber}`;
-  const cropImg = document.getElementById("modalCropImg");
-  const fullImg = document.getElementById("modalFullImg");
+  const cropContainer = document.getElementById("modalCropContainer");
+  const fullContainer = document.getElementById("modalFullContainer");
 
-  cropImg.src = cropUrl ? `${BACKEND_URL}${cropUrl}` : "";
-  fullImg.src = fullUrl ? `${BACKEND_URL}${fullUrl}` : "";
+  renderEvidenceSlot(cropContainer, cropUrl, "Plate Crop");
+  renderEvidenceSlot(fullContainer, fullUrl, "Vehicle Snapshot");
 
   document.getElementById("evidenceModal").classList.remove("hidden");
 }

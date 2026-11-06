@@ -26,6 +26,8 @@ references/
 backend/references/
 
 # Dynamic User Uploads & Captures
+*.db
+backend/data/*.db
 backend/data/database/*.db
 backend/data/captures/full_frames/*
 backend/data/captures/cropped_plates/*

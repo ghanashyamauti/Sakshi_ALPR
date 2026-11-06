@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sakshi ALPR India • Vehicle Intelligence</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🚗</text></svg>">
   
   <!-- Premium Google Fonts: Plus Jakarta Sans, Outfit, JetBrains Mono -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -210,6 +211,21 @@
               <span>Upload Photo or Video</span>
             </h3>
 
+            <!-- 2-Option Engine Selection -->
+            <div class="space-y-1.5">
+              <span class="text-[11px] font-bold text-slate-500 uppercase tracking-wider block">Choose Recognition Engine:</span>
+              <div class="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button type="button" id="btnEngineAI" onclick="setEngineMode('ai')" class="py-2 px-3 text-xs font-bold rounded-lg transition flex items-center justify-center space-x-1.5 bg-white text-indigo-700 shadow-sm border border-slate-200">
+                  <i class="fa-solid fa-wand-magic-sparkles text-indigo-600"></i>
+                  <span>AI Vision (100%)</span>
+                </button>
+                <button type="button" id="btnEngineLocal" onclick="setEngineMode('local')" class="py-2 px-3 text-xs font-semibold rounded-lg transition flex items-center justify-center space-x-1.5 text-slate-600 hover:text-slate-900">
+                  <i class="fa-solid fa-bolt text-slate-500"></i>
+                  <span>Local YOLOv8</span>
+                </button>
+              </div>
+            </div>
+
             <!-- Unified Dropzone for Photos & Videos -->
             <div id="dropZone" class="border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-xl p-8 text-center cursor-pointer transition bg-slate-50/50 hover:bg-blue-50/30 group">
               <input type="file" id="fileInput" accept="image/*,video/*" class="hidden">
@@ -223,6 +239,8 @@
                 </div>
               </div>
             </div>
+
+
 
             <div class="p-3.5 bg-blue-50/60 border border-blue-100 rounded-xl text-xs text-blue-800 space-y-1">
               <div class="font-semibold flex items-center space-x-1.5">
@@ -498,14 +516,14 @@
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
           <p class="text-xs font-semibold text-slate-500 mb-2">Cropped License Plate:</p>
-          <div class="rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center min-h-[110px]">
-            <img id="modalCropImg" class="w-full object-contain" alt="Plate Crop">
+          <div id="modalCropContainer" class="rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center min-h-[140px] p-2">
+            <span class="text-slate-400 text-xs">Loading evidence...</span>
           </div>
         </div>
         <div>
           <p class="text-xs font-semibold text-slate-500 mb-2">Full Vehicle Snapshot:</p>
-          <div class="rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center min-h-[110px]">
-            <img id="modalFullImg" class="w-full object-contain max-h-[200px]" alt="Vehicle Snapshot">
+          <div id="modalFullContainer" class="rounded-xl overflow-hidden bg-slate-50 border border-slate-200 flex items-center justify-center min-h-[140px] p-2">
+            <span class="text-slate-400 text-xs">Loading evidence...</span>
           </div>
         </div>
       </div>

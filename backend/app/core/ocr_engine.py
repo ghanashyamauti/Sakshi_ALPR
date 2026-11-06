@@ -1,10 +1,13 @@
 """
 Optical Character Recognition (OCR) Engine
-High-precision multi-pass OCR for Indian vehicle and bike number plates.
+High-precision multi-pass OCR for Indian vehicle and motorcycle number plates.
+Supports standard single-line plates and two-line square motorcycle/scooter plates.
+Optimized for low-latency CPU inference without redundant passes.
 """
 import cv2
 import numpy as np
 import easyocr
+import gc
 from typing import Tuple, Optional, List
 import backend.app.patch_torch  # noqa: F401
 from backend.app.config import EASYOCR_MODEL_DIR
@@ -56,6 +59,32 @@ class LicensePlateOCR:
 
         return resized, sharpened
 
+    def _ocr_single(self, img: np.ndarray) -> Tuple[str, float]:
+        """Runs EasyOCR on a single image and returns concatenated text and mean confidence."""
+        try:
+            results = self.reader.readtext(
+                img,
+                allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
+                detail=1,
+                paragraph=False,
+                text_threshold=0.25,
+                link_threshold=0.40,
+                low_text=0.25
+            )
+            if not results:
+                return "", 0.0
+
+            # Sort row-major (top-to-bottom, left-to-right)
+            sorted_res = sorted(results, key=lambda r: (r[0][0][1] // 28, r[0][0][0]))
+            words = [r[1].strip() for r in sorted_res if r[1].strip()]
+            confs = [float(r[2]) for r in sorted_res if r[1].strip()]
+            
+            combined = "".join(words)
+            mean_conf = float(np.mean(confs)) if confs else 0.0
+            return combined, mean_conf
+        except Exception:
+            return "", 0.0
+
     def read_text(
         self,
         crop: np.ndarray,
@@ -64,61 +93,53 @@ class LicensePlateOCR:
         if crop is None or crop.size == 0:
             return "", 0.0, crop
 
-        resized, sharpened = self.enhance_crop(crop)
-
         from backend.app.core.postprocessor import IndianPlatePostProcessor
 
-        # Check raw resized first, then sharpened
-        for img_variant in (resized, sharpened):
-            try:
-                results = self.reader.readtext(
-                    img_variant,
-                    allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789',
-                    detail=1,
-                    paragraph=False,
-                    text_threshold=0.20,
-                    link_threshold=0.35,
-                    low_text=0.20
-                )
-            except Exception:
-                continue
+        h, w = crop.shape[:2]
+        aspect_ratio = float(w) / float(max(h, 1))
 
-            if not results:
-                continue
+        resized, sharpened = self.enhance_crop(crop)
 
-            # Sort tokens horizontally and vertically (row-major)
-            sorted_results = sorted(results, key=lambda r: (r[0][0][1] // 30, r[0][0][0]))
-
-            words = []
-            confs = []
-            for _, text, conf in sorted_results:
-                clean = text.strip()
-                if clean:
-                    words.append(clean)
-                    confs.append(float(conf))
-
-            combined_text = "".join(words)
-            avg_conf = float(np.mean(confs)) if confs else 0.0
-
-            # If this variant yields a valid Indian plate format, accept immediately!
-            _, _, is_valid = IndianPlatePostProcessor.process(combined_text)
+        # 1. Primary pass on resized crop
+        text1, conf1 = self._ocr_single(resized)
+        if text1:
+            _, _, is_valid = IndianPlatePostProcessor.process(text1)
             if is_valid:
-                import gc
                 gc.collect()
-                return combined_text, max(avg_conf, 0.75), resized
+                return text1, max(conf1, 0.75), resized
 
-        # Fallback if neither variant was immediately valid: return whatever was found
-        try:
-            results = self.reader.readtext(resized, allowlist='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789', paragraph=False)
-            if results:
-                text = "".join([r[1].strip() for r in results])
-                conf = float(np.mean([r[2] for r in results]))
-                import gc
+        # 2. Secondary pass on sharpened crop
+        text2, conf2 = self._ocr_single(sharpened)
+        if text2:
+            _, _, is_valid = IndianPlatePostProcessor.process(text2)
+            if is_valid:
                 gc.collect()
-                return text, conf, resized
-        except Exception:
-            pass
+                return text2, max(conf2, 0.75), resized
 
-        import gc
+        # 3. Two-line bike plate pass if aspect ratio < 2.3
+        if aspect_ratio < 2.3 and h >= 30:
+            top_half = crop[:int(h * 0.55), :]
+            bot_half = crop[int(h * 0.45):, :]
+
+            top_resized, _ = self.enhance_crop(top_half, target_height=100)
+            bot_resized, _ = self.enhance_crop(bot_half, target_height=100)
+
+            top_text, top_conf = self._ocr_single(top_resized)
+            bot_text, bot_conf = self._ocr_single(bot_resized)
+
+            if top_text and bot_text:
+                combined_bike = top_text + bot_text
+                _, _, is_valid = IndianPlatePostProcessor.process(combined_bike)
+                if is_valid:
+                    gc.collect()
+                    return combined_bike, max((top_conf + bot_conf) / 2.0, 0.75), resized
+
+        # 4. Fallback: Return whichever candidate had more characters without re-running OCR
+        best_candidate = text1 if len(text1) >= len(text2) else text2
+        best_conf = conf1 if len(text1) >= len(text2) else conf2
+        
         gc.collect()
+        if len(best_candidate) >= 4:
+            return best_candidate, best_conf, resized
+
         return "", 0.0, resized
