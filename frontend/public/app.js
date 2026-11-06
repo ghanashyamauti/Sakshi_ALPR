@@ -14,7 +14,8 @@ function getBackendUrl() {
   if (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1") {
     return "http://localhost:8000";
   }
-  return "";
+  // Default Render production URL
+  return "https://sakshi-alpr.onrender.com";
 }
 
 let BACKEND_URL = getBackendUrl();
@@ -27,11 +28,7 @@ let frameCount = 0;
 
 document.addEventListener("DOMContentLoaded", () => {
   updateBackendPill();
-  if (!BACKEND_URL && window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1") {
-    promptBackendUrl();
-  } else {
-    loadStats();
-  }
+  loadStats();
   setupDropZone();
   setInterval(() => {
     if (BACKEND_URL) loadStats();
